@@ -2,11 +2,14 @@
 	"name" : "Tears of Ashan",
 	"author" : "Aphra",
 	"contact" : "https://sites.google.com/view/tears-of-ashan",
-	"version" : "Public Beta 1.1.0",
+	"version" : "Public Beta 1.1.1",
 	"modType" : "Expansion",
 	"compatibility" : {"min" : "1.7.0"},
 	
 	"changelog" : {
+		"Public Beta 1.1.1"   : [
+			"Gnoll Shaman sprites and icons updated"
+		],
 		"Public Beta 1.1.0"   : [
 			"New Old Spells rebalanced; all spells have been given more appropriate and detailed descriptions",
 			"Deep Freeze now renders targets visibly frozen",

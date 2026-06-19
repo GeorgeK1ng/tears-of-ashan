@@ -7,8 +7,67 @@ on:
   workflow_dispatch:
 
 jobs:
+  validate-json:
+    name: Validate JSON
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      valid: ${{ steps.validate.outcome == 'success' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update repository
+        run: sudo apt update
+
+      - name: Install jstyleson
+        run: sudo apt install python3-jstyleson
+
+      - name: Validate JSON syntax
+        id: validate
+        run: python3 .github/validate_json.py
+
+  format-json:
+    name: Format JSON
+    needs: [validate-json]
+    if: ${{ needs.validate-json.result == 'success' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install -g prettier
+
+      - name: Format JSON files with Prettier
+        run: |
+          prettier --write "**/*.json" "!**/translation/**" \
+                   --parser jsonc \
+                   --use-tabs \
+                   --tab-width 4 \
+                   --trailing-comma none \
+                   --print-width 1
+
+      - name: Postprocess colon spacing
+        run: python3 .github/postprocess_colons.py
+
+      - name: Commit changes if needed
+        uses: EndBug/add-and-commit@v9
+        with:
+          default_author: github_actions
+          message: "Auto-format JSON files"
+          add: '*.json'
+
   validate-startup:
     name: Test VCMI Startup
+    needs: [validate-json, format-json]
+    if: ${{ always() && needs.validate-json.result == 'success' && (needs.format-json.result == 'success' || needs.format-json.result == 'skipped') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,6 +77,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Detect VCMI Version
         run: |
@@ -109,83 +170,13 @@ jobs:
               exit 1
           fi
 
-  validate-json:
-    name: Validate JSON
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    outputs:
-      valid: ${{ steps.validate.outcome == 'success' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update repository
-        run: sudo apt update
-
-      - name: Install jstyleson
-        run: sudo apt install python3-jstyleson
-
-      - name: Validate JSON syntax
-        id: validate
-        run: python3 .github/validate_json.py
-
-  format-json:
-    name: Format JSON
-    needs: [validate-json, validate-startup]
-    if: ${{ needs.validate-json.result == 'success' && github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          npm install -g prettier
-
-      - name: Download translation artifacts
-        if: needs.validate-startup.outputs.translations_present == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: translation-export
-          path: ./translation-export
-
-      - name: Refresh translation files
-        if: needs.validate-startup.outputs.translations_present == 'true'
-        run: |
-          mv translation-export ..
-          find . -name english.json -delete
-          python3 .github/merge_dirs.py ../translation-export .
-
-      - name: Format JSON files with Prettier
-        run: |
-          prettier --write "**/*.json" "!**/translation/**" \
-                   --parser jsonc \
-                   --use-tabs \
-                   --tab-width 4 \
-                   --trailing-comma none \
-                   --print-width 1
-
-      - name: Postprocess colon spacing
-        run: python3 .github/postprocess_colons.py
-
-      - name: Commit changes if needed
-        uses: EndBug/add-and-commit@v9
-        with:
-          default_author: github_actions
-          message: "Auto-format JSON files"
-          add: '*.json'
 
   package-artifact:
     name: Create release
-    needs: [validate-json, format-json]
+    needs: [validate-startup]
     if: >-
       ${{
-        needs.validate-json.result == 'success' &&
+        needs.validate-startup.result == 'success' &&
         github.event_name != 'pull_request' &&
         github.repository_owner == 'vcmi-mods' &&
         startsWith(github.ref_name, 'vcmi-')
@@ -200,7 +191,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Prepare content ZIPs
@@ -210,14 +201,16 @@ jobs:
         run: bash .github/create_release_package.sh
 
       - name: Strip vcmi- prefix for TAG
-        run: echo "RELEASE_TAG=${GITHUB_REF_NAME#vcmi-}" >> $GITHUB_ENV
+        run: |
+          echo "RELEASE_TAG=${GITHUB_REF_NAME#vcmi-}" >> $GITHUB_ENV
+          echo "RELEASE_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Move tag to current commit
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git tag -f "${RELEASE_TAG}" "${GITHUB_SHA}"
+          git tag -f "${RELEASE_TAG}" "${RELEASE_SHA}"
           git push origin "${RELEASE_TAG}" --force
 
       - name: Upload Mod Release Package
@@ -227,12 +220,12 @@ jobs:
           name: ${{ github.ref_name }}
           body: |
             Automated build for branch `${{ github.ref_name }}`.
-            Commit: `${{ github.sha }}`
+            Commit: `${{ env.RELEASE_SHA }}`
           artifacts: dist/${{ github.event.repository.name }}-${{ github.ref_name }}.zip
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: false
-          commit: ${{ github.sha }}
+          commit: ${{ env.RELEASE_SHA }}
 
       # Upload mod.json after Release Package is uploaded to correctly notify end users
       - name: Upload mod.json
@@ -244,4 +237,4 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: false
-          commit: ${{ github.sha }}
+          commit: ${{ env.RELEASE_SHA }}

@@ -77,8 +77,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Detect VCMI Version
         run: |
@@ -191,7 +189,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Prepare content ZIPs
@@ -201,16 +199,14 @@ jobs:
         run: bash .github/create_release_package.sh
 
       - name: Strip vcmi- prefix for TAG
-        run: |
-          echo "RELEASE_TAG=${GITHUB_REF_NAME#vcmi-}" >> $GITHUB_ENV
-          echo "RELEASE_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        run: echo "RELEASE_TAG=${GITHUB_REF_NAME#vcmi-}" >> $GITHUB_ENV
 
       - name: Move tag to current commit
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git tag -f "${RELEASE_TAG}" "${RELEASE_SHA}"
+          git tag -f "${RELEASE_TAG}" "${GITHUB_SHA}"
           git push origin "${RELEASE_TAG}" --force
 
       - name: Upload Mod Release Package
@@ -220,12 +216,12 @@ jobs:
           name: ${{ github.ref_name }}
           body: |
             Automated build for branch `${{ github.ref_name }}`.
-            Commit: `${{ env.RELEASE_SHA }}`
+            Commit: `${{ github.sha }}`
           artifacts: dist/${{ github.event.repository.name }}-${{ github.ref_name }}.zip
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: false
-          commit: ${{ env.RELEASE_SHA }}
+          commit: ${{ github.sha }}
 
       # Upload mod.json after Release Package is uploaded to correctly notify end users
       - name: Upload mod.json
@@ -237,4 +233,4 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: false
-          commit: ${{ env.RELEASE_SHA }}
+          commit: ${{ github.sha }}

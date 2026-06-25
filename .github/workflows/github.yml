@@ -7,9 +7,70 @@ on:
   workflow_dispatch:
 
 jobs:
+  validate-json:
+    name: Validate JSON
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      valid: ${{ steps.validate.outcome == 'success' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update repository
+        run: sudo apt update
+
+      - name: Install jstyleson
+        run: sudo apt install python3-jstyleson
+
+      - name: Validate JSON syntax
+        id: validate
+        run: python3 .github/validate_json.py
+
+  format-json:
+    name: Format JSON
+    needs: [validate-json]
+    if: ${{ needs.validate-json.result == 'success' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install -g prettier
+
+      - name: Format JSON files with Prettier
+        run: |
+          prettier --write "**/*.json" "!**/translation/**" \
+                   --parser jsonc \
+                   --use-tabs \
+                   --tab-width 4 \
+                   --trailing-comma none \
+                   --print-width 1
+
+      - name: Postprocess colon spacing
+        run: python3 .github/postprocess_colons.py
+
+      - name: Commit changes if needed
+        uses: EndBug/add-and-commit@v9
+        with:
+          default_author: github_actions
+          message: "Auto-format JSON files"
+          add: '*.json'
+
   validate-startup:
     name: Test VCMI Startup
+    needs: [validate-json, format-json]
+    if: ${{ always() && needs.validate-json.result == 'success' && (needs.format-json.result == 'success' || needs.format-json.result == 'skipped') }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         shell: bash
@@ -88,6 +149,20 @@ jobs:
             echo "translations_present=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Refresh translation files
+        if: steps.check.outputs.translations_present == 'true' && github.event_name != 'pull_request'
+        run: |
+          find . -name english.json -delete
+          python3 .github/merge_dirs.py "$HOME/.cache/vcmi/extracted/translationFull/${MOD_NAME}" .
+
+      - name: Commit translation changes if needed
+        if: steps.check.outputs.translations_present == 'true' && github.event_name != 'pull_request'
+        uses: EndBug/add-and-commit@v9
+        with:
+          default_author: github_actions
+          message: "Update generated translations"
+          add: '*.json'
+
       - name: Upload Translation Files
         if: steps.check.outputs.translations_present == 'true'
         uses: actions/upload-artifact@v4
@@ -109,83 +184,13 @@ jobs:
               exit 1
           fi
 
-  validate-json:
-    name: Validate JSON
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    outputs:
-      valid: ${{ steps.validate.outcome == 'success' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update repository
-        run: sudo apt update
-
-      - name: Install jstyleson
-        run: sudo apt install python3-jstyleson
-
-      - name: Validate JSON syntax
-        id: validate
-        run: python3 .github/validate_json.py
-
-  format-json:
-    name: Format JSON
-    needs: [validate-json, validate-startup]
-    if: ${{ needs.validate-json.result == 'success' && github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          npm install -g prettier
-
-      - name: Download translation artifacts
-        if: needs.validate-startup.outputs.translations_present == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: translation-export
-          path: ./translation-export
-
-      - name: Refresh translation files
-        if: needs.validate-startup.outputs.translations_present == 'true'
-        run: |
-          mv translation-export ..
-          find . -name english.json -delete
-          python3 .github/merge_dirs.py ../translation-export .
-
-      - name: Format JSON files with Prettier
-        run: |
-          prettier --write "**/*.json" "!**/translation/**" \
-                   --parser jsonc \
-                   --use-tabs \
-                   --tab-width 4 \
-                   --trailing-comma none \
-                   --print-width 1
-
-      - name: Postprocess colon spacing
-        run: python3 .github/postprocess_colons.py
-
-      - name: Commit changes if needed
-        uses: EndBug/add-and-commit@v9
-        with:
-          default_author: github_actions
-          message: "Auto-format JSON files"
-          add: '*.json'
 
   package-artifact:
     name: Create release
-    needs: [validate-json, format-json]
+    needs: [validate-startup]
     if: >-
       ${{
-        needs.validate-json.result == 'success' &&
+        needs.validate-startup.result == 'success' &&
         github.event_name != 'pull_request' &&
         github.repository_owner == 'vcmi-mods' &&
         startsWith(github.ref_name, 'vcmi-')

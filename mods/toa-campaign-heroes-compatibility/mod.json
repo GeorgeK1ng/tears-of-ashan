@@ -1,35 +1,35 @@
 {
-	"name" : "Campaign Heroes Compatibility",
-	"author" : "Aphra",
-	"contact" : "",
-	"description" : "Compatibility layer for Campaign Heroes mod. Changes armies and specialty descriptions.",
-	"licenseName" : "Creative Commons Attribution-ShareAlike",
-	"licenseURL" : "",
-	"modType" : "Compatibility",
-	"version" : "1.0.0",
-	"changelog" : {
-		"1.0.0" : [
-			"Initial release"
-		]
-	},
-
-	"depends" : [
-		"campaign-heroes"
-	],
-
-	"heroes" : [
-		"config/heroChanges.json"
-	],
-
-	"czech" : {
-		"name" : "Kompatibilita s Campaign Heroes",
-		"description" : "Vrstva kompatibility pro mod Campaign Heroes. Upravuje armády a popisy specializací."
-	},
-	"polish" : {
-		"name" : "Kompatybilność z bohaterami kampanijnymi",
-		"description" : "Łatka na kompatybilność z bohaterami kampanijnymi. Zmienia opisy armii i specjalności.",
-		"translations" : [
-			"translation/polish.json"
-		]
-	}
+    "name": "Campaign Heroes Compatibility",
+    "author": "Aphra",
+    "contact": "",
+    "description": "Compatibility layer for Campaign Heroes mod. Changes armies and specialty descriptions.",
+    "licenseName": "Creative Commons Attribution-ShareAlike",
+    "licenseURL": "",
+    "modType": "Compatibility",
+    "version": "1.0.0",
+    "changelog": {
+        "1.0.0": [
+            "Initial release"
+        ]
+    },
+    "depends": [
+        "campaign-heroes"
+    ],
+    "heroes": [
+        "config/heroChanges.json"
+    ],
+    "czech": {
+        "name": "Kompatibilita s Campaign Heroes",
+        "description": "Vrstva kompatibility pro mod Campaign Heroes. Upravuje armády a popisy specializací.",
+        "translations": [
+            "translation/czech.json"
+        ]
+    },
+    "polish": {
+        "name": "Kompatybilność z bohaterami kampanijnymi",
+        "description": "Łatka na kompatybilność z bohaterami kampanijnymi. Zmienia opisy armii i specjalności.",
+        "translations": [
+            "translation/polish.json"
+        ]
+    }
 }

@@ -1,16 +1,18 @@
 {
-	"name" : "Ashan Sounds",
-	"author" : "Aphra",
-	"contact" : "",
-	"description" : "",
-	"version" : "1.0.0",
-	"modType" : "Music",
-
-	"conflicts" : [
-		"new-sfx-sounds"
-	],
-
-	"creatures" : [
-		"config/creatures.json"
-	]
+    "name": "Ashan Sounds",
+    "author": "Aphra",
+    "contact": "",
+    "description": "",
+    "version": "1.0.0",
+    "modType": "Music",
+    "conflicts": [
+        "new-sfx-sounds"
+    ],
+    "creatures": [
+        "config/creatures.json"
+    ],
+    "czech": {
+        "name": "Zvuky Ashanu",
+        "description": "Zvukové efekty inspirované Ashanem pro jednotky a rozhraní."
+    }
 }

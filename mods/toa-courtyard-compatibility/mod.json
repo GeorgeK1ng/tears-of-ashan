@@ -23,7 +23,7 @@
         "config/spellChanges.json"
     ],
     "czech": {
-        "name": "Kompatibilita s Courtyard",
-        "description": "Vrstva kompatibility pro mod Courtyard. Mění všechny výskyty Rekonstrukce na verzi z Tears of Ashan."
+        "name": "Kompatibilita s Nádvořím",
+        "description": "Vrstva kompatibility pro mod Nádvoří. Mění všechny výskyty Rekonstrukce na verzi z Tears of Ashan."
     }
 }

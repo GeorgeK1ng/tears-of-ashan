@@ -2,12 +2,15 @@
     "name": "Tears of Ashan",
     "author": "Aphra; see website for full list of credits!",
     "contact": "https://sites.google.com/view/tears-of-ashan",
-    "version": "1.6.10",
+    "version": "1.6.11",
     "modType": "Expansion",
     "compatibility": {
         "min": "1.7.3"
     },
     "changelog": {
+        "Public Beta 1.6.11": [
+            "Updated Czech translation by George King"
+        ],
         "Public Beta 1.6.10": [
             "Galthran is no longer special by default",
             "Added new combination artifacts: Abyssal Scale Mail (Cove set); Barkskin Shield (Rampart set); Flail of the Gladiator (Fortress set); Shadow Scale Mail (Dungeon set); Plate of the Dwarven King (Dwarven set)",
